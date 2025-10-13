@@ -1,0 +1,7 @@
+*.vsidx
+/.vs/MapAppMVC/v17
+/.vs/MapAppMVC/DesignTimeBuild
+/.vs/ProjectEvaluation
+/.vs
+/bin
+/obj
