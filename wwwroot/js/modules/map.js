@@ -1,6 +1,8 @@
 // ol-circle-icon-map.js
 //SH//import OlShadowTileCache from '../map/shadowmap.js';
 
+import MapOverlay from './mapoverlay.js';
+
 // mountMap
 // ajaxcalls
 // controller view
@@ -19,12 +21,19 @@ export default class OlCircleIconMap {
             maxRadius = 20050,
             enablePopup = true,
 
-            popupMultiple = true       
+            popupMultiple = true,
+            showDefaultZoomButtons = true,  
             // Shadow-Cache
             //SH//enableShadowTileCache = false,
             //SH//shadowTileCacheFactor = 2,
             //SH//shadowDebounceMs = 0,
             //SH//shadowLayerSelector,
+
+            overlay = true,
+            overlayConfig = {},           // { place: {top:[...], right:[...], ...}, htmlTopStart: '...', ... }
+            homeCenter = null,
+            homeZoom = null,
+            zoomKmPresets = [1, 5, 10, 100, 500],
         } = options;
 
 
@@ -54,13 +63,16 @@ export default class OlCircleIconMap {
             layers: [base],
             loadTilesWhileAnimating: true,
             loadTilesWhileInteracting: true,
+            controls: []
         });
 
         // Vector-Layer
         this.circleSource = new ol.source.Vector();
+        
         this.circleLayer = new ol.layer.Vector({
             source: this.circleSource,
-            style: (f) => this.#circleStyle(f),
+            //style: (f) => this.#circleStyle(f),
+            style: (f) => this._filters.circle(f) ? this.#circleStyle(f) : null,
             updateWhileAnimating: true,
             updateWhileInteracting: true,
             declutter: false,
@@ -69,11 +81,18 @@ export default class OlCircleIconMap {
         this.iconSource = new ol.source.Vector();
         this.iconLayer = new ol.layer.Vector({
             source: this.iconSource,
-            style: (f) => this.#iconStyle(f),
+            //style: (f) => this.#iconStyle(f),
+            style: (f) => this._filters.icon(f) ? this.#iconStyle(f) : null,
+
             updateWhileAnimating: true,
             updateWhileInteracting: true,
             declutter: false,
         });
+
+        this._filters = {
+            circle: () => true,
+            icon: () => true,
+        };
 
         this.map.addLayer(this.circleLayer);
         this.map.addLayer(this.iconLayer);
@@ -103,7 +122,51 @@ export default class OlCircleIconMap {
         }*/
 
         this.animTimer = null;
+
+        this._homeCenter = Array.isArray(homeCenter) ? homeCenter : center;
+        this._homeZoom = typeof homeZoom === 'number' ? homeZoom : zoom;
+
+        if (overlay) {
+            this.overlay = new MapOverlay({ map: this.map, target });
+            this.#initDefaultOverlays({ zoomKmPresets, overlayConfig });
+        }
     }
+
+    getMap() { return this.map; }
+    setCenter(lonLat) { this.map.getView().setCenter(this.to3857(lonLat)); }
+    getCenter() { return ol.proj.toLonLat(this.map.getView().getCenter()); }
+    setZoom(z) { this.map.getView().setZoom(z); }
+    getZoom() { return this.map.getView().getZoom(); }
+    setZIndices({ circles = 5, icons = 10 } = {}) { this.circleLayer.setZIndex(circles); this.iconLayer.setZIndex(icons); }
+    setDeclutterIcons(flag) { this.iconLayer.setDeclutter(!!flag); }
+
+    setCircleFilter(fn) { this._filters.circle = typeof fn === 'function' ? fn : () => true; this.circleSource.changed(); }
+    setIconFilter(fn) { this._filters.icon = typeof fn === 'function' ? fn : () => true; this.iconSource.changed(); }
+
+    goHome() { this.flyTo(this._homeCenter, this._homeZoom); }
+    zoomIn() { this.map.getView().setZoom(this.getZoom() + 1); }
+    zoomOut() { this.map.getView().setZoom(this.getZoom() - 1); }
+    flyTo(lonlat, zoom = null, duration = 400) {
+        const v = this.map.getView();
+        const anim = [];
+        if (lonlat) anim.push({ center: this.to3857(lonlat), duration });
+        if (typeof zoom === 'number') anim.push({ zoom, duration });
+        v.animate(...anim);
+    }
+
+    zoomToDistanceKm(km, atLonLat = null) {
+        const view = this.map.getView();
+        const size = this.map.getSize() || [1024, 768];
+        const lat = (atLonLat ? atLonLat[1] : this.getCenter()[1]) * Math.PI / 180;
+        const metersAcross = km * 1000;
+        const cosLat = Math.cos(lat) || 1;
+        const metersPerPixelZ0 = 156543.03392804097 * cosLat;
+        const targetMPP = metersAcross / (size[0] * 0.6);
+        const z = Math.log2(metersPerPixelZ0 / targetMPP);
+        if (atLonLat) this.setCenter(atLonLat);
+        view.setZoom(Math.max(2, Math.min(19, z)));
+    }
+
 
     addCirclesFrom(list = []) {
         for (const c of list) {
@@ -623,6 +686,75 @@ export default class OlCircleIconMap {
         }
         if (!this.popupMultiple) document.body.appendChild(el); 
         return el;
+    }
+
+
+
+    #initDefaultOverlays({ zoomKmPresets = [1, 5, 10, 100, 500], overlayConfig = {} } = {}) {
+        if (!this.overlay) return;
+
+        const nav = this.overlay.createNavControls({
+            kmPresets: zoomKmPresets,
+            onHome: () => this.goHome(),
+            onZoomToKm: (km) => this.zoomToDistanceKm(km),
+            onZoomIn: () => this.zoomIn(),
+            onZoomOut: () => this.zoomOut(),
+            label: ''
+        });
+        this.overlay.add('left', nav, 'start'); // rechts oben
+
+        const jumps = this.overlay.createJumpButtons({
+            items: [
+                { label: 'Dortmund', lonlat: [7.468, 51.514], icon: 'fa-solid fa-city', km: 20 },
+                { label: 'Duesseldorf', lonlat: [6.773, 51.227], icon: 'fa-solid fa-city', km: 20 },
+                { label: 'Koeln', lonlat: [6.960, 50.938], icon: 'fa-solid fa-city', km: 20 },
+            ],
+            onJump: (it) => { this.flyTo(it.lonlat, null); this.zoomToDistanceKm(it.km || 20, it.lonlat); }
+        });
+        this.overlay.add('top', jumps, 'end');
+
+        const circ = this.overlay.createCircleFilter({
+            defActive: true,
+            min: this.MIN_R,
+            max: this.MAX_R,
+            onApply: ({ enabled, min, max }) => {
+                if (!enabled) {
+                    this.setCircleFilter(() => true);
+                } else {
+                    const mi = Math.max(this.MIN_R, +min || this.MIN_R);
+                    const ma = Math.min(this.MAX_R, +max || this.MAX_R);
+                    this.setCircleFilter((f) => {
+                        const r = f.getGeometry()?.getRadius?.() || 0;
+                        return r >= mi && r <= ma;
+                    });
+                }
+            }
+        });
+        this.overlay.add('top', circ, 'start');
+
+        //const ico = this.overlay.createIconFilter({
+        //    onApply: (q) => {
+        //        const QQ = (q || '').toLowerCase();
+        //        if (!QQ) { this.setIconFilter(() => true); return; }
+        //        this.setIconFilter((f) => {
+        //            const html = (f.get('html') || '').toString().toLowerCase();
+        //            const id = (f.getId() || '').toString().toLowerCase();
+        //            const fa = f.get('fa') || {};
+        //            const glyph = (fa.glyph || '').toString().toLowerCase();
+        //            return html.includes(QQ) || id.includes(QQ) || glyph.includes(QQ);
+        //        });
+        //    }
+        //});
+        //this.overlay.add('right', ico, 'start');
+
+        if (overlayConfig.htmlTopStart) this.overlay.add('top', this.overlay.createHtml(overlayConfig.htmlTopStart), 'start');
+        if (overlayConfig.htmlTopEnd) this.overlay.add('top', this.overlay.createHtml(overlayConfig.htmlTopEnd), 'end');
+        if (overlayConfig.htmlBottomStart) this.overlay.add('bottom', this.overlay.createHtml(overlayConfig.htmlBottomStart), 'start');
+        if (overlayConfig.htmlBottomEnd) this.overlay.add('bottom', this.overlay.createHtml(overlayConfig.htmlBottomEnd), 'end');
+        if (overlayConfig.htmlLeftStart) this.overlay.add('left', this.overlay.createHtml(overlayConfig.htmlLeftStart), 'start');
+        if (overlayConfig.htmlLeftEnd) this.overlay.add('left', this.overlay.createHtml(overlayConfig.htmlLeftEnd), 'end');
+        if (overlayConfig.htmlRightStart) this.overlay.add('right', this.overlay.createHtml(overlayConfig.htmlRightStart), 'start');
+        if (overlayConfig.htmlRightEnd) this.overlay.add('right', this.overlay.createHtml(overlayConfig.htmlRightEnd), 'end');
     }
 }
 

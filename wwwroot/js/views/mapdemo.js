@@ -6,7 +6,16 @@ const { ui } = mountMap(
         center: [7.466, 51.51494],
         zoom: 11,
         enablePopup: true, 
-        popupMultiple: true
+        popupMultiple: true,
+
+        overlay: true,
+        homeCenter: [7.466, 51.51494],
+        homeZoom: 12,
+        zoomKmPresets: [10, 50, 100, 200], // beliebig
+        overlayConfig: {
+            htmlTopStart: '<span class="badge bg-info text-dark">Custom Info oben/links</span>',
+            htmlBottomEnd: '<small class="text-muted">© Mein Projekt</small>'
+        }
     }, 
     { 
         onReady: async ({ ui }) => {

@@ -21,10 +21,10 @@ namespace MapAppMVC.Controllers
                 _circles[id] = new CircleResponse
                 {
                     Id = id,
-                    Lon = 7.45 + _rng.NextDouble() * 1.0-0.5,
-                    Lat = 51.51 + _rng.NextDouble() * 1.0 - 0.5,
+                    Lon = 7.45 + _rng.NextDouble() * 2.0-1,
+                    Lat = 51.51 + _rng.NextDouble() * 2.0 -1,
                     // Radius in Meter 
-                    Radius = 3000 + _rng.NextDouble() * 5000,
+                    Radius = 1000 + _rng.NextDouble() * 2000,
                     Color = RandomHex(),
                     Label = $"Circle {i + 1}",
                     Html = $"<b>CircleMarker {i + 1}</b><br/><button type='button' class='btn btn-success'>Success</button>",
@@ -38,8 +38,8 @@ namespace MapAppMVC.Controllers
                 _icons[id] = new IconResponse
                 {
                     Id = id,
-                    Lon = 7.45 + _rng.NextDouble() * 1.0 - 0.5,
-                    Lat = 51.51 + _rng.NextDouble() * 1.0 - 0.5,
+                    Lon = 7.45 + _rng.NextDouble() * 2.0 - 1,
+                    Lat = 51.51 + _rng.NextDouble() * 2.0 - 1,
                     Html = $"<b>Marker {i + 1}</b><br/><button type='button' class='btn btn-danger'>Danger</button>",
                     Fa = new FaStyleResponse { Glyph = "\uf041", Size = 28, Weight = 900, Fill = colors[i % colors.Length] }
                 };
@@ -71,8 +71,8 @@ namespace MapAppMVC.Controllers
             var list = _circles.Values.OrderBy(_ => _rng.Next()).Take(Math.Clamp(n, 1, 3)).ToList();
             foreach (var c in list)
             {
-                var delta = (int)(_rng.NextDouble() * 4000) - 2000; // -400..+400
-                var newRadius = Math.Max(2000, c.Radius + delta);
+                var delta = (int)(_rng.NextDouble() * 2000) - 1000; // -400..+400
+                var newRadius = Math.Max(500, c.Radius + delta);
                 c.Radius = newRadius;
 
                 c.Html = "<b>UPDATE</b>" + (_rng.NextDouble()) as string;
