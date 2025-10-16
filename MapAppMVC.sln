@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapAppMVC", "..\MapAppMVC\MapAppMVC.csproj", "{8D9C7A6B-7054-4774-B83C-14F3DCD76CB5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapAppMVC", "MapAppMVC\MapAppMVC.csproj", "{AFCEAE21-EB20-D423-AE58-F357CD3B054C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8D9C7A6B-7054-4774-B83C-14F3DCD76CB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8D9C7A6B-7054-4774-B83C-14F3DCD76CB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8D9C7A6B-7054-4774-B83C-14F3DCD76CB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8D9C7A6B-7054-4774-B83C-14F3DCD76CB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFCEAE21-EB20-D423-AE58-F357CD3B054C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFCEAE21-EB20-D423-AE58-F357CD3B054C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFCEAE21-EB20-D423-AE58-F357CD3B054C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFCEAE21-EB20-D423-AE58-F357CD3B054C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
