@@ -3,14 +3,22 @@ using System.Collections.Concurrent;
 
 namespace MapAppMVC.Controllers
 {
+    /// <summary>
+    /// Datengebende Funktionen für das MapControl
+    /// Aktuell als Rest-API implementiert
+    /// Todo: Überlegen, ob Ajax call zu klassischem Controller sinnvoller ist
+    /// </summary>
     [ApiController]
     [Route("api/map")]
     public class MapController : ControllerBase
     {
+        #region Attributes
         private static readonly ConcurrentDictionary<string, CircleResponse> _circles = new();
         private static readonly ConcurrentDictionary<string, IconResponse> _icons = new();
         private static readonly Random _rng = new();
+        #endregion
 
+        #region Constructor Initialization
         static MapController()
         {
             // Initialdaten
@@ -55,6 +63,9 @@ namespace MapAppMVC.Controllers
                 }
             }
         }
+        #endregion    
+
+        #region Data provider map control
 
         [HttpGet("circles-initial")]
         public ActionResult<IEnumerable<CircleResponse>> GetCirclesInitial()
@@ -133,9 +144,10 @@ namespace MapAppMVC.Controllers
         [HttpGet("icon/{id}")]
         public ActionResult<IconResponse> GetIcon(string id)
             => _icons.TryGetValue(id, out var val) ? Ok(val) : NotFound();
+        #endregion
     }
 
-    // --- DTOs ---
+    #region DTOs
     public record CircleResponse
     {
         public string Id { get; init; } = default!;
@@ -180,4 +192,6 @@ namespace MapAppMVC.Controllers
         public double? Scale{ get; set; }
 
     }
+
+    #endregion
 }

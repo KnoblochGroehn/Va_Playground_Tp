@@ -1,0 +1,26 @@
+﻿@{
+    ViewData["Title"] = "Map Demo Page";
+
+}
+
+<div class="main-layout-container"
+     data-controller="Home"
+     data-init="mapdemo"
+     data-script="mapdemo"
+     data-module-base="/js/views/"
+     data-style-base="/css/views/">
+
+    <section class="map-wrap" style="width:1280px;height:1280px">
+        <div id="map" style="width:1280px;height:1280px"
+             data-center-lon="10.0"
+             data-center-lat="51.0"
+             data-zoom="6">
+        </div>
+
+        <script src="/js/pageLoader.js" type="module"></script>
+    </section>
+
+</div>
+
+
+ 
