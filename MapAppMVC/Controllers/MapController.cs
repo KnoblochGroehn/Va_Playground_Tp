@@ -15,6 +15,8 @@ namespace MapAppMVC.Controllers
         #region Attributes
         private static readonly ConcurrentDictionary<string, CircleResponse> _circles = new();
         private static readonly ConcurrentDictionary<string, IconResponse> _icons = new();
+        private static readonly ConcurrentDictionary<string, PolygonResponse> _polygons = new(); 
+
         private static readonly Random _rng = new();
         #endregion
 
@@ -62,6 +64,35 @@ namespace MapAppMVC.Controllers
                     _icons[id].Fa = new FaStyleResponse { Glyph = "\uf041", Size = 28, Weight = 900, Fill = colors[i % colors.Length] };
                 }
             }
+            for (int i = 0; i < 200; i++)
+            {
+                var id = $"p{i + 1}";
+                _polygons[id] = RandomPolygon(id, 7.45 + _rng.NextDouble() * 2.0 - 1, 51.51 + _rng.NextDouble() * 2.0 - 1);
+            }
+        }
+
+        private static PolygonResponse RandomPolygon(string id, double lon, double lat)
+        {
+            int verts = 4 + _rng.Next(13); // 4..16
+            double baseR = 0.02 + _rng.NextDouble() * 0.08; // ~einfacher Kreisradius in Grad
+            var coords = new List<double[]>();
+            for (int i = 0; i < verts; i++)
+            {
+                double a = (Math.PI * 2.0) * i / verts;
+                double jitter = 0.4 + _rng.NextDouble() * 0.8; // 0.4..1.2
+                double dx = Math.Cos(a) * baseR * jitter;
+                double dy = Math.Sin(a) * baseR * jitter;
+                coords.Add(new[] { lon + dx, lat + dy });
+            }
+            var colors = new[] { "#ffa50055", "#00cc8877", "#1e90ff66", "#ff69b466", "#8e44ad55" };
+            return new PolygonResponse
+            {
+                Id = id,
+                Coords = coords,
+                Color = colors[_rng.Next(colors.Length)],
+                Label = $"Poly {id}",
+                Html = $"<b>Polygon {id}</b>"
+            };
         }
         #endregion    
 
@@ -144,6 +175,46 @@ namespace MapAppMVC.Controllers
         [HttpGet("icon/{id}")]
         public ActionResult<IconResponse> GetIcon(string id)
             => _icons.TryGetValue(id, out var val) ? Ok(val) : NotFound();
+
+        [HttpGet("polygons-initial")]
+        public ActionResult<IEnumerable<PolygonResponse>> GetPolygonsInitial([FromQuery] int n = 100)
+        {
+            var vals = _polygons.Values.Take(n).ToList();
+            return Ok(vals);
+        }
+
+        [HttpGet("polygons-delta")]
+        public ActionResult<IEnumerable<object>> GetPolygonsDelta([FromQuery] int n = 2)
+        {
+            var list = _polygons.Values.OrderBy(_ => _rng.Next()).Take(Math.Clamp(n, 1, 5)).ToList();
+            var updates = new List<object>();
+            foreach (var p in list)
+            {
+                if (_rng.NextDouble() < 0.15)
+                {
+                    // Kill
+                    updates.Add(new { id = p.Id, Kill = true });
+                    _polygons.TryRemove(p.Id, out _);
+                    continue;
+                }
+
+                // leichte Formänderung
+                var centerLon = p.Coords.Average(c => c[0]);
+                var centerLat = p.Coords.Average(c => c[1]);
+                var id = p.Id;
+                var np = RandomPolygon(id, centerLon, centerLat); // neu erzeugen (einfach halten)
+                _polygons[id] = np;
+
+                updates.Add(new
+                {
+                    id = id,
+                    coords = np.Coords,
+                    color = np.Color,
+                    html = $"<b>UPDATE {id}</b>"
+                });
+            }
+            return Ok(updates);
+        }
         #endregion
     }
 
@@ -159,6 +230,16 @@ namespace MapAppMVC.Controllers
         public string? Html { get; set; }
         public bool? Kill { get; set; }
 
+    }
+
+    public record PolygonResponse  
+    {
+        public string Id { get; init; } = default!;
+        public List<double[]> Coords { get; set; } = new(); // [ [lon,lat], ... ]
+        public string? Color { get; set; }
+        public string? Label { get; set; }
+        public string? Html { get; set; }
+        public bool? Kill { get; set; }
     }
     public record IconResponse
     {

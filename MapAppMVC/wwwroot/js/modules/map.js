@@ -89,16 +89,28 @@ export default class OlCircleIconMap {
             declutter: false,
         });
 
+        this.polygonSource = new ol.source.Vector();
+        this.polygonLayer = new ol.layer.Vector({
+            source: this.polygonSource,
+            style: (f) => this._filters.polygon(f) ? this.#polygonStyle(f) : null,
+            updateWhileAnimating: true,
+            updateWhileInteracting: true,
+            declutter: false,
+        });
+
         this._filters = {
             circle: () => true,
             icon: () => true,
+            polygon: () => true
         };
 
         this.map.addLayer(this.circleLayer);
+        this.map.addLayer(this.polygonLayer);
         this.map.addLayer(this.iconLayer);
         this.setZIndices({ circles: 5, icons: 10 });
 
         this._circleById = new Map();
+        this._polygonById = new Map();
         this._iconById = new Map();
 
 
@@ -142,7 +154,112 @@ export default class OlCircleIconMap {
 
     setCircleFilter(fn) { this._filters.circle = typeof fn === 'function' ? fn : () => true; this.circleSource.changed(); }
     setIconFilter(fn) { this._filters.icon = typeof fn === 'function' ? fn : () => true; this.iconSource.changed(); }
+    setPolygonFilter(fn) { this._filters.polygon = typeof fn === 'function' ? fn : () => true; this.polygonSource.changed(); } 
 
+    // --- Polygone: API wie Kreise ---
+    addPolygonsFrom(list = []) {
+        for (const p of list) {
+            this.addPolygon({
+                id: p.id ?? p.Id,
+                coordsLonLat: p.coords ?? p.Coords, // [ [lon,lat], ... ]
+                color: p.color ?? p.Color,
+                label: p.label ?? p.Label,
+                html: p.html ?? p.Html
+            });
+        }
+        return this;
+    }
+
+    addPolygon({ id, coordsLonLat = [], coords3857, color = 'rgba(255,165,0,0.25)', label, html = '' } = {}) {
+        if (id != null) {
+            const existing = this._polygonById.get(id);
+            if (existing) {
+                if (coordsLonLat?.length || coords3857?.length) {
+                    //const ring = coords3857 || coordsLonLat.map(ll => this.to3857(ll));
+                    const ring = (coords3857 && coords3857.length)
+                        ? this.#ensureClosedRing(coords3857)
+                        : (coordsLonLat?.length ? this.#ensureClosedRing(coordsLonLat.map(ll => this.to3857(ll))) : []);
+
+                    existing.setGeometry(new ol.geom.Polygon([ring]));
+                }
+                if (html != null) existing.set('html', html);
+                if (color != null) existing.set('color', color);
+                if (label != null) existing.set('label', label);
+                return existing;
+            }
+        }
+        const ring = (coords3857 && coords3857.length)
+            ? coords3857
+            : (coordsLonLat?.length ? coordsLonLat.map(ll => this.to3857(ll)) : []);
+        const geom = new ol.geom.Polygon([ring]);
+        const f = new ol.Feature({ geometry: geom, color, label });
+        if (id != null) { f.setId(id); this._polygonById.set(id, f); }
+        if (html != null) f.set('html', html);
+        this.polygonSource.addFeature(f);
+        return f;
+    }
+
+    clearPolygons() { this.polygonSource.clear(); }
+
+    updatePolygonsFrom(list = [], opts = {}) {
+        const norm = [];
+        for (const p of list) {
+            if (p.Kill === true) {
+                if (p.id != null) {
+                    const existing = this._polygonById.get(p.id);
+                    if (existing) {
+                        this.polygonSource.removeFeature(existing);
+                        this._polygonById.delete(p.id);
+                    }
+                }
+            } else {
+                norm.push({
+                    id: p.id ?? p.Id,
+                    coords: p.coords ?? p.Coords,
+                    color: p.color ?? p.Color,
+                    label: p.label ?? p.Label,
+                    html: p.html ?? p.Html
+                });
+            }
+        }
+        this.updatePolygons(norm, opts);
+        return this;
+    }
+
+    updatePolygons(updates = [], { upsert = false } = {}) {
+        for (const u of updates) {
+            const id = u.id ?? u.Id; if (id == null) continue;
+            let f = this._polygonById.get(id);
+            if (!f) {
+                if (!upsert) continue;
+                f = this.addPolygon({ id, coordsLonLat: u.coords, color: u.color, label: u.label, html: u.html });
+            }
+            //if (u.coords?.length) {
+            //    const ring = u.coords.map(ll => this.to3857(ll));
+            //    f.setGeometry(new ol.geom.Polygon([ring]));
+            //}
+            if (u.coords?.length) {
+                const ring = this.#ensureClosedRing(u.coords.map(ll => this.to3857(ll)));
+                f.setGeometry(new ol.geom.Polygon([ring]));
+            }
+
+            if (u.html != null) f.set('html', u.html);
+            if (u.color != null) f.set('color', u.color);
+            if (u.label != null) f.set('label', u.label);
+
+            if (this.popupMultiple && this.popupOverlays.length && u.html != null) {
+                for (const ov of this.popupOverlays) {
+                    if (ov.htmlid === id) {
+                        const content = ov.getElement().querySelector('[data-popup-content]');
+                        if (content) content.innerHTML = u.html;
+                    }
+                }
+            } else if (!this.popupMultiple) {
+                if (this.popupContent.htmlid === id) this.popupContent.innerHTML = u.html;
+            }
+        }
+        this.polygonSource.changed();
+    }
     goHome() { this.flyTo(this._homeCenter, this._homeZoom); }
     zoomIn() { this.map.getView().setZoom(this.getZoom() + 1); }
     zoomOut() { this.map.getView().setZoom(this.getZoom() - 1); }
@@ -200,23 +317,21 @@ export default class OlCircleIconMap {
         return this;
     }
 
-    async loadByCallbacks({ getCircles, getIcons, n } = {}) {
+    async loadByCallbacks({ getCircles, getIcons, getPolygons, n } = {}) {
         const jobs = [];
         if (typeof getCircles === 'function') {
-            jobs.push(
-                Promise.resolve(getCircles({ n }))
-                    .then(arr => this.addCirclesFrom(arr || []))
-            );
+            jobs.push(Promise.resolve(getCircles({ n })).then(arr => this.addCirclesFrom(arr || [])));
         }
         if (typeof getIcons === 'function') {
-            jobs.push(
-                Promise.resolve(getIcons({ n }))
-                    .then(arr => this.addIconsFrom(arr || []))
-            );
+            jobs.push(Promise.resolve(getIcons({ n })).then(arr => this.addIconsFrom(arr || [])));
+        }
+        if (typeof getPolygons === 'function') { // neu
+            jobs.push(Promise.resolve(getPolygons({ n })).then(arr => this.addPolygonsFrom(arr || [])));
         }
         await Promise.all(jobs);
         return this;
     }
+
 
     updateCirclesFrom(list = [], opts = {}) {
         const norm = [];
@@ -285,19 +400,16 @@ export default class OlCircleIconMap {
         return this;
     }
 
-    async loadUpdatesByCallbacks({ getCircleUpdates, getIconUpdates, upsert = false } = {}) {
+    async loadUpdatesByCallbacks({ getCircleUpdates, getIconUpdates, getPolygonUpdates, upsert = false } = {}) {
         const jobs = [];
         if (typeof getCircleUpdates === 'function') {
-            jobs.push(
-                Promise.resolve(getCircleUpdates())
-                    .then(arr => this.updateCirclesFrom(arr || [], { upsert }))
-            );
+            jobs.push(Promise.resolve(getCircleUpdates()).then(arr => this.updateCirclesFrom(arr || [], { upsert })));
         }
         if (typeof getIconUpdates === 'function') {
-            jobs.push(
-                Promise.resolve(getIconUpdates())
-                    .then(arr => this.updateIconsFrom(arr || [], { upsert }))
-            );
+            jobs.push(Promise.resolve(getIconUpdates()).then(arr => this.updateIconsFrom(arr || [], { upsert })));
+        }
+        if (typeof getPolygonUpdates === 'function') { // neu
+            jobs.push(Promise.resolve(getPolygonUpdates()).then(arr => this.updatePolygonsFrom(arr || [], { upsert })));
         }
         await Promise.all(jobs);
         return this;
@@ -514,6 +626,12 @@ export default class OlCircleIconMap {
     // --- private helpers / styles / popup ---
     #radiusToPercent(r) { return Math.round(((r - this.MIN_R) / (this.MAX_R - this.MIN_R)) * 100); }
     #clampRadius(r) { return this.clamp(r, this.MIN_R, this.MAX_R); }
+    #ensureClosedRing(ring) {
+        if (!ring || ring.length < 3) return ring;
+        const a = ring[0], b = ring[ring.length - 1];
+        if (a[0] !== b[0] || a[1] !== b[1]) ring = [...ring, a];
+        return ring;
+    }
 
     #circleStyle(feature) {
         const color = feature.get('color') || 'rgba(0,128,255,0.20)';
@@ -584,6 +702,26 @@ export default class OlCircleIconMap {
         }
         return this.styleCache.get(key);
     }
+
+    #polygonStyle(feature) {
+        const color = feature.get('color') || 'rgba(255,165,0,0.25)';
+        const label = feature.get('label') || '';
+        const key = `poly|${color}|${label}`;
+        if (!this.styleCache.has(key)) {
+            this.styleCache.set(key, new ol.style.Style({
+                fill: new ol.style.Fill({ color }),
+                stroke: new ol.style.Stroke({ color: 'rgba(0,0,0,0.6)', width: 2 }),
+                text: label ? new ol.style.Text({
+                    text: label,
+                    font: 'bold 18px system-ui, sans-serif',
+                    fill: new ol.style.Fill({ color: '#000' }),
+                    stroke: new ol.style.Stroke({ color: 'rgba(255,255,255,0.7)', width: 4 }),
+                }) : undefined
+            }));
+        }
+        return this.styleCache.get(key);
+    }
+
 
     #initPopup(enable) {
         if (!this.popupMultiple) {
@@ -701,51 +839,39 @@ export default class OlCircleIconMap {
             onZoomOut: () => this.zoomOut(),
             label: ''
         });
-        this.overlay.add('left', nav, 'start'); // rechts oben
+        this.overlay.add('left', nav, 'start');
 
-        const jumps = this.overlay.createJumpButtons({
-            items: [
-                { label: 'Dortmund', lonlat: [7.468, 51.514], icon: 'fa-solid fa-city', km: 20 },
-                { label: 'Duesseldorf', lonlat: [6.773, 51.227], icon: 'fa-solid fa-city', km: 20 },
-                { label: 'Koeln', lonlat: [6.960, 50.938], icon: 'fa-solid fa-city', km: 20 },
-            ],
-            onJump: (it) => { this.flyTo(it.lonlat, null); this.zoomToDistanceKm(it.km || 20, it.lonlat); }
-        });
-        this.overlay.add('top', jumps, 'end');
+        // Titel oben
+        if (overlayConfig.title) {
+            const titleEl = this.overlay.createHtml(`<div class="fw-semibold px-3 py-2 bg-light border rounded shadow-sm">${overlayConfig.title}</div>`);
+            this.overlay.add('top', titleEl, 'start');
+        }
 
-        const circ = this.overlay.createCircleFilter({
-            defActive: true,
-            min: this.MIN_R,
-            max: this.MAX_R,
-            onApply: ({ enabled, min, max }) => {
-                if (!enabled) {
-                    this.setCircleFilter(() => true);
-                } else {
-                    const mi = Math.max(this.MIN_R, +min || this.MIN_R);
-                    const ma = Math.min(this.MAX_R, +max || this.MAX_R);
-                    this.setCircleFilter((f) => {
-                        const r = f.getGeometry()?.getRadius?.() || 0;
-                        return r >= mi && r <= ma;
-                    });
-                }
-            }
-        });
-        this.overlay.add('top', circ, 'start');
+        //const jumps = this.overlay.createJumpButtons({
+        //    items: [
+        //        { label: 'Dortmund', lonlat: [7.468, 51.514], icon: 'fa-solid fa-city', km: 20 },
+        //        { label: 'Duesseldorf', lonlat: [6.773, 51.227], icon: 'fa-solid fa-city', km: 20 },
+        //        { label: 'Koeln', lonlat: [6.960, 50.938], icon: 'fa-solid fa-city', km: 20 },
+        //    ],
+        //    onJump: (it) => { this.flyTo(it.lonlat, null); this.zoomToDistanceKm(it.km || 20, it.lonlat); }
+        //});
+        //this.overlay.add('top', jumps, 'end');
 
-        //const ico = this.overlay.createIconFilter({
-        //    onApply: (q) => {
-        //        const QQ = (q || '').toLowerCase();
-        //        if (!QQ) { this.setIconFilter(() => true); return; }
-        //        this.setIconFilter((f) => {
-        //            const html = (f.get('html') || '').toString().toLowerCase();
-        //            const id = (f.getId() || '').toString().toLowerCase();
-        //            const fa = f.get('fa') || {};
-        //            const glyph = (fa.glyph || '').toString().toLowerCase();
-        //            return html.includes(QQ) || id.includes(QQ) || glyph.includes(QQ);
+        //const circ = this.overlay.createCircleFilter({
+        //    defActive: true,
+        //    min: this.MIN_R,
+        //    max: this.MAX_R,
+        //    onApply: ({ enabled, min, max }) => {
+        //        if (!enabled) { this.setCircleFilter(() => true); return; }
+        //        const mi = Math.max(this.MIN_R, +min || this.MIN_R);
+        //        const ma = Math.min(this.MAX_R, +max || this.MAX_R);
+        //        this.setCircleFilter((f) => {
+        //            const r = f.getGeometry()?.getRadius?.() || 0;
+        //            return r >= mi && r <= ma;
         //        });
         //    }
         //});
-        //this.overlay.add('right', ico, 'start');
+        //this.overlay.add('top', circ, 'start');
 
         if (overlayConfig.htmlTopStart) this.overlay.add('top', this.overlay.createHtml(overlayConfig.htmlTopStart), 'start');
         if (overlayConfig.htmlTopEnd) this.overlay.add('top', this.overlay.createHtml(overlayConfig.htmlTopEnd), 'end');
@@ -761,7 +887,58 @@ export default class OlCircleIconMap {
 
 export function mountMap(options = {}, hooks = {}, timerOptions = {})
 {
+    
+    console.log('mountMap');
+    console.log('options:', options);
+
+
     const ui = new OlCircleIconMap(options);
+
+    if (Array.isArray(options.jumps) && options.jumps.length && ui.overlay) {
+        const defaultJumpKm = options.defaultJumpKm ?? 20;
+
+        const jumps = ui.overlay.createJumpButtons({
+            items: options.jumps.map(it => ({
+                ...it,
+                km: it.km ?? defaultJumpKm,
+            })),
+            onJump: (it) => {
+                ui.flyTo(it.lonlat, null);
+                ui.zoomToDistanceKm(it.km ?? defaultJumpKm, it.lonlat);
+            }
+        });
+
+        ui.overlay.add('top', jumps, 'end');
+    }
+
+    if (options.circle && ui.overlay && typeof ui.setCircleFilter === 'function') {
+        // Bounds aus Parametern, fallback auf evtl. vorhandene this.MIN_R/MAX_R
+        const minBound = (typeof options.circle.min === 'number') ? options.circle.min : (ui.MIN_R ?? 0);
+        const maxBound = (typeof options.circle.max === 'number') ? options.circle.max : (ui.MAX_R ?? 1e9);
+        const defActive = (options.circle.defActive ?? true);
+
+        const circ = ui.overlay.createCircleFilter({
+            defActive: defActive,
+            min: minBound,
+            max: maxBound,
+            onApply: ({ enabled, min, max }) =>
+            {
+                if (!enabled) { ui.setCircleFilter(() => true); return; }
+
+                const mi = Math.max(minBound, Number(min) || minBound);
+                const ma = Math.min(maxBound, Number(max) || maxBound);
+
+                ui.setCircleFilter((f) => {
+                    // robust gegen fehlende Methoden
+                    const geom = f?.getGeometry?.();
+                    const r = geom?.getRadius?.() || 0;
+                    return r >= mi && r <= ma;
+                });
+            }
+        });
+
+        ui.overlay.add('top', circ, 'end');
+    }
 
     if (typeof hooks.onReady === 'function') {
         Promise.resolve().then(() => hooks.onReady({ ui }));
