@@ -1,10 +1,19 @@
 wwwroot\css\site.css
 wwwroot\css\views\Home\mapdemo.css
+wwwroot\css\views\Home\mapdemo1.css
+wwwroot\css\views\Home\mapdemo2.css
+wwwroot\css\views\Home\mapdemo3.css
+wwwroot\css\views\Home\mapdemo4.css
 wwwroot\favicon.ico
 wwwroot\js\map\shadowmap.js
+wwwroot\js\views\Home\mapdemo4.js
 wwwroot\js\modules\map.js
 wwwroot\js\pageloader.js
 wwwroot\js\site.js
+wwwroot\js\views\Home\mapdemo1.js
+wwwroot\js\views\Home\mapdemo3.js
+wwwroot\js\views\Home\mapdemo2.js
+wwwroot\js\modules\mapoverlay.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.min.css
@@ -62,4 +71,3 @@ wwwroot\lib\jquery\dist\jquery.js
 wwwroot\lib\jquery\dist\jquery.min.js
 wwwroot\lib\jquery\dist\jquery.min.map
 wwwroot\lib\jquery\LICENSE.txt
-wwwroot\js\views\Home\mapdemo.js

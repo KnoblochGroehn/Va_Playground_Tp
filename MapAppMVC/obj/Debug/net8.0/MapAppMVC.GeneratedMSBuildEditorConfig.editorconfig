@@ -1,5 +1,7 @@
 is_global = true
 build_property.TargetFramework = net8.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v8.0
 build_property.TargetPlatformMinVersion = 
 build_property.UsingMicrosoftNETSdkWeb = true
 build_property.ProjectTypeGuids = 
@@ -17,13 +19,27 @@ build_property.SupportLocalizedComponentNames =
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
 build_property.MSBuildProjectDirectory = D:\usr\20250900_MAPAPPMVC\MapAppMVC
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
 
 [D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/MapDemo.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxNYXBEZW1vLmNzaHRtbA==
+[D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/MapDemo1.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxNYXBEZW1vMS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/MapDemo2.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxNYXBEZW1vMi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/MapDemo3.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxNYXBEZW1vMy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/MapDemo4.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxNYXBEZW1vNC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/usr/20250900_MAPAPPMVC/MapAppMVC/Views/Home/Privacy.cshtml]

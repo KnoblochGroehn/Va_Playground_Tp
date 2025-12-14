@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MapAppMVC")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+df6f0d519f9b4cdf8b7f021adecfcee8b59168a7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d0dca62a10eccdbc7e9055105827db97ebc5423e")]
 [assembly: System.Reflection.AssemblyProductAttribute("MapAppMVC")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MapAppMVC")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
