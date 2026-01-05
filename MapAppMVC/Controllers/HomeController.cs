@@ -24,10 +24,25 @@ namespace MapAppMVC.Controllers
         #region ControllerViews
         public IActionResult Index()
         {
-            return RedirectToAction("MapDemo");
+            return RedirectToAction("MapDemo1");
         }
 
-        public IActionResult MapDemo()
+        public IActionResult MapDemo1()
+        {
+            return View();
+        }
+
+        public IActionResult MapDemo2()
+        {
+            return View();
+        }
+
+        public IActionResult MapDemo3()
+        {
+            return View();
+        }
+
+        public IActionResult MapDemo4()
         {
             return View();
         }
