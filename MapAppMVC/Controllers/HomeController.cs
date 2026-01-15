@@ -46,6 +46,11 @@ namespace MapAppMVC.Controllers
         {
             return View();
         }
+
+        public IActionResult MapDemo5()
+        {
+            return View();
+        }
         public IActionResult Privacy()
         {
             return View();

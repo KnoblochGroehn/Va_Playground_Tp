@@ -882,13 +882,14 @@ export default class OlCircleIconMap {
         if (!center) return null;
 
         const sw = Math.max(0, +(strokeCfg.width ?? 8)); // px
-        const ow = (outlineCfg && outlineCfg.enabled) ? Math.max(0, +(outlineCfg.width ?? (sw + 4))) : 0; // px
+        const ow = (outlineCfg && outlineCfg.enabled) ? Math.max(0, +(outlineCfg.width ?? (sw ))) : 0; // px
 
         const cacheable = !anim;
         const key = cacheable ? `circle|${fillColor}|${strokeColor}|${sw}|${outlineCfg.enabled}|${outlineCfg.color}|${ow}|${label}|${JSON.stringify(cfg.label || {})}|${this._keepCircleRadiusPixels}` : null;
         if (cacheable && this.styleCache.has(key)) return this.styleCache.get(key);
 
-        const textStyle = this.#buildTextStyle(cfg.label, label);
+        const labelCfg = this.#mergeDeep(cfg.label || {}, feature.get('labelCfg') || {});
+        const textStyle = this.#buildTextStyle(labelCfg, label);
 
         // No overlap: fill at innerR. Stroke and outline are rings outside.
         const styles = [];
@@ -898,6 +899,13 @@ export default class OlCircleIconMap {
             text: textStyle || undefined
         }));
 
+        if (outlineCfg && outlineCfg.enabled && ow > 0) {
+            styles.push(new ol.style.Style({
+                geometry: new ol.geom.Circle(center, innerR),  // + (sw * res) + (ow / 2) * res),
+                stroke: new ol.style.Stroke({ color: outlineCfg.color || 'rgba(0,0,0,0.25)', width: ow })
+            }));
+        }
+
         if (sw > 0) {
             styles.push(new ol.style.Style({
                 geometry: new ol.geom.Circle(center, innerR + (sw / 2) * res),
@@ -905,12 +913,6 @@ export default class OlCircleIconMap {
             }));
         }
 
-        if (outlineCfg && outlineCfg.enabled && ow > 0) {
-            styles.push(new ol.style.Style({
-                geometry: new ol.geom.Circle(center, innerR + (sw * res) + (ow / 2) * res),
-                stroke: new ol.style.Stroke({ color: outlineCfg.color || 'rgba(0,0,0,0.25)', width: ow })
-            }));
-        }
 
         const out = (styles.length === 1) ? styles[0] : styles;
         if (cacheable) this.styleCache.set(key, out);
@@ -1035,7 +1037,8 @@ export default class OlCircleIconMap {
         const key = (!anim) ? `poly|${fillColor}|${strokeCfg.color}|${strokeCfg.width}|${outlineCfg.enabled}|${outlineCfg.color}|${outlineCfg.width}|${label}` : null;
         if (!anim && this.styleCache.has(key)) return this.styleCache.get(key);
 
-        const textStyle = label ? this.#buildTextStyle(cfg.label, label) : undefined;
+        const labelCfg = this.#mergeDeep(cfg.label || {}, feature.get('labelCfg') || {});
+        const textStyle = label ? this.#buildTextStyle(labelCfg, label) : undefined;
 
         const styles = [];
         styles.push(new ol.style.Style({
@@ -1058,6 +1061,7 @@ export default class OlCircleIconMap {
     // ---- text style builder (label)
     #buildTextStyle(labelCfg = {}, text = '') {
         if (!text) return null;
+
         const cfg = this.#mergeDeep({
             font: 'bold 18px system-ui, sans-serif',
             color: '#fff',
@@ -1067,18 +1071,34 @@ export default class OlCircleIconMap {
             background: { enabled: false, fill: 'rgba(0,0,0,0.35)', padding: [4, 6, 4, 6], borderRadius: 6, stroke: null }
         }, labelCfg || {});
 
-        // Background box via Canvas not directly supported in ol.style.Text.
-        // Here we support either outline stroke OR no outline. Background can be faked via "padding+fill" in future with custom renderer.
-        // For now: outline vs none, to match your requirement (nicht immer outline).
-        return new ol.style.Text({
+        const bg = cfg.background || {};
+        const bgEnabled = !!bg.enabled;
+
+        // OpenLayers supports backgroundFill/backgroundStroke/padding on ol.style.Text
+        // (safe to pass even if some builds ignore it).
+        const textOpts = {
             text,
             font: cfg.font,
             fill: new ol.style.Fill({ color: cfg.color }),
-            stroke: cfg.outlined ? new ol.style.Stroke({ color: cfg.outlineColor, width: cfg.outlineWidth }) : undefined,
+            stroke: cfg.outlined
+                ? new ol.style.Stroke({ color: cfg.outlineColor, width: cfg.outlineWidth })
+                : undefined,
             textAlign: 'center',
             textBaseline: 'middle'
-        });
+        };
+
+        if (bgEnabled) {
+            textOpts.padding = Array.isArray(bg.padding) ? bg.padding : [4, 6, 4, 6];
+            textOpts.backgroundFill = new ol.style.Fill({ color: bg.fill || 'rgba(255,255,255,0.75)' });
+            if (bg.stroke) {
+                textOpts.backgroundStroke = new ol.style.Stroke({ color: bg.stroke, width: 1 });
+            }
+            // borderRadius kann OL-Text nicht direkt – bleibt im cfg, aber wird nicht angewandt (bewusst minimal).
+        }
+
+        return new ol.style.Text(textOpts);
     }
+
 
     // ---- animations helpers
     #t() { return (performance.now() - this._t0) / 1000.0; }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Globalization;
 
 namespace MapAppMVC.Controllers
 {
@@ -11,6 +12,11 @@ namespace MapAppMVC.Controllers
         private static readonly ConcurrentDictionary<string, CircleResponse> _circles = new();
         private static readonly ConcurrentDictionary<string, IconResponse> _icons = new();
         private static readonly ConcurrentDictionary<string, PolygonResponse> _polygons = new();
+
+        private static readonly ConcurrentDictionary<string, CircleResponse> _demo5Circles = new();
+        private static readonly ConcurrentDictionary<string, IconResponse> _demo5Icons = new();
+        private static readonly ConcurrentDictionary<string, PolygonResponse> _demo5Polygons = new();
+
 
         private static readonly Random _rng = new();
         private readonly ILogger<MapController> _log;
@@ -89,7 +95,7 @@ namespace MapAppMVC.Controllers
                     StrokeColor = "rgba(255,255,255,0.65)",
                     StrokeWidth = 6,
                     OutlineColor = "rgba(0,0,0,0.18)",
-                    OutlineWidth = 14
+                    OutlineWidth = 2
                 };
                 if (_rng.NextDouble() < 0.08)
                 {
@@ -158,6 +164,8 @@ namespace MapAppMVC.Controllers
                 var id = $"p{i + 1}";
                 _polygons[id] = RandomPolygon(id, 7.45 + _rng.NextDouble() * 2.0 - 1, 51.51 + _rng.NextDouble() * 2.0 - 1);
             }
+
+            InitDemo5();
         }
 
         // -------- API --------
@@ -429,7 +437,7 @@ namespace MapAppMVC.Controllers
         private static PolygonResponse RandomPolygon(string id, double lon, double lat)
         {
             int verts = 4 + _rng.Next(10); // 4..13
-            double baseR = 0.015 + _rng.NextDouble() * 0.05; // ~Grad
+            double baseR = 0.015 + _rng.NextDouble() * 0.25; // ~Grad
             var coords = new List<double[]>();
             for (int i = 0; i < verts; i++)
             {
@@ -448,11 +456,142 @@ namespace MapAppMVC.Controllers
                 Label = $"Poly {id}",
                 Html = $"<b>Polygon {id}</b>",
                 StrokeColor = "rgba(0,0,0,0.65)",
-                StrokeWidth = 3,
+                StrokeWidth = 2,
                 OutlineColor = "rgba(255,255,255,0.35)",
-                OutlineWidth = 10
+                OutlineWidth = 2
             };
         }
+
+
+        private record Demo5IconPreset(string Name, int Size, string Baseline);
+
+        private static readonly IconPreset[] _demo5IconPresets = new[]
+        {
+            // Mobile / Phone / Tablet
+            new IconPreset("MobileScreen", "\uf3cd", 30, "middle"),
+            new IconPreset("Phone",        "\uf095", 28, "middle"),
+            new IconPreset("Tablet",       "\uf3fa", 30, "middle"),
+
+            // Funk / Signal / Wifi / Broadcast / Antenne (FontAwesome Codes – falls ein Glyph in deinem FA-Subset fehlt,
+            // einfach im Browser prüfen und ggf. austauschen)
+            new IconPreset("Signal",       "\uf012", 26, "middle"),
+            new IconPreset("Wifi",         "\uf1eb", 26, "middle"),
+            new IconPreset("Broadcast",    "\uf519", 26, "middle"), // broadcast-tower (FA5/6 – je nach Set)
+            new IconPreset("SatelliteDish","\uf7c0", 26, "middle"),
+        };
+
+        private static void InitDemo5()
+        {
+            // Region: Ruhrgebiet, clean B/W + Blue Accent
+            double baseLon = 7.468;
+            double baseLat = 51.514;
+
+            // Icons
+            for (int i = 0; i < 260; i++)
+            {
+                var id = $"d5m{i + 1}";
+                var preset = _demo5IconPresets[_rng.Next(_demo5IconPresets.Length)];
+
+                // Schwarz/Weiß + Blau Akzent
+                var fill = "rgba(255,255,255,1)";
+                var stroke = "rgba(30,144,255,1)";
+                var strokeW = 2;
+
+                _demo5Icons[id] = new IconResponse
+                {
+                    Id = id,
+                    Lon = baseLon + (_rng.NextDouble() * 2.0 - 1.0),
+                    Lat = baseLat + (_rng.NextDouble() * 2.0 - 1.0),
+                    Html = $"<div class='fw-semibold'>Demo5 Icon {i + 1}</div><div class='text-muted'>Mobile/Funk</div>",
+                    Fa = new FaStyleResponse
+                    {
+                        Glyph = preset.Glyph,
+                        Size = preset.Size,
+                        Weight = 900,
+                        Fill = fill,
+                        Stroke = stroke,
+                        StrokeWidth = strokeW,
+                        TextBaseline = preset.Baseline,
+                        TextAlign = "center",
+                        ZIndex = 1200
+                    }
+                };
+
+                if (_rng.NextDouble() < 0.10)
+                    _demo5Icons[id].Anim = new AnimResponse { Type = (_rng.NextDouble() < 0.5) ? "bob" : "scale" };
+            }
+
+            for (int i = 0; i < 120; i++)
+            {
+                var id = $"d5c{i + 1}";
+                _demo5Circles[id] = new CircleResponse
+                {
+                    Id = id,
+                    Lon = baseLon + (_rng.NextDouble() * 2.0 - 1.0),
+                    Lat = baseLat + (_rng.NextDouble() * 2.0 - 1.0),
+                    Radius = 600 + _rng.NextDouble() * 5200,
+                    Color = "rgba(30,30,30,0.10)",
+                    Label = (i % 4 == 0) ? $"ZONE {i + 1}" : $"Area {i + 1}",
+                    Html = $"<div class='fw-semibold'>Demo5 Circle {i + 1}</div><div class='text-muted'>clean / b&w</div>",
+                    StrokeColor = "rgba(30,144,255,1)",
+                    StrokeWidth = 2,
+                    OutlineColor = "rgba(255,255,255,0.50)",
+                    OutlineWidth = 0
+                };
+
+                if (_rng.NextDouble() < 0.06)
+                    _demo5Circles[id].Anim = new AnimResponse { Type = "pulse", Freq = 0.8 };
+            }
+
+            // Polygons (wenig Füllung, klare Kontur)
+            for (int i = 0; i < 60; i++)
+            {
+                var id = $"d5p{i + 1}";
+                var p = RandomPolygon(id, baseLon + (_rng.NextDouble() * 2.0 - 1.0), baseLat + (_rng.NextDouble() * 2.0 - 1.0));
+
+                p.Color = "rgba(30,144,255,0.06)";
+                p.StrokeColor = "rgba(30,144,255,1)";
+                p.StrokeWidth = 2;
+                p.OutlineColor = "rgba(255,255,255,0.50)"; 
+                p.OutlineWidth = 2;
+                p.Label = (i % 3 == 0) ? $"SECTOR {i + 1}" : $"Sector {i + 1}";
+                p.Html = $"<div class='fw-semibold'>Demo5 Polygon {i + 1}</div><div class='text-muted'>outline / label</div>";
+
+                _demo5Polygons[id] = p;
+            }
+        }
+
+
+        [HttpGet("demo5/circles-initial")]
+        public ActionResult<IEnumerable<CircleResponse>> GetDemo5CirclesInitial(
+            [FromQuery] double? lon = null, [FromQuery] double? lat = null,
+            [FromQuery] double km = 25, [FromQuery] int n = 1000, [FromQuery] int debug = 0)
+        {
+            LogDebug(debug, "demo5/circles-initial", lon, lat, km, n);
+            var vals = FilterByCenter(_demo5Circles.Values, lon, lat, km).Take(Clamp(n, 1, 5000)).ToList();
+            return Ok(vals);
+        }
+
+        [HttpGet("demo5/icons-initial")]
+        public ActionResult<IEnumerable<IconResponse>> GetDemo5IconsInitial(
+            [FromQuery] double? lon = null, [FromQuery] double? lat = null,
+            [FromQuery] double km = 25, [FromQuery] int n = 1000, [FromQuery] int debug = 0)
+        {
+            LogDebug(debug, "demo5/icons-initial", lon, lat, km, n);
+            var vals = FilterByCenter(_demo5Icons.Values, lon, lat, km).Take(Clamp(n, 1, 5000)).ToList();
+            return Ok(vals);
+        }
+
+        [HttpGet("demo5/polygons-initial")]
+        public ActionResult<IEnumerable<PolygonResponse>> GetDemo5PolygonsInitial(
+            [FromQuery] double? lon = null, [FromQuery] double? lat = null,
+            [FromQuery] double km = 25, [FromQuery] int n = 200, [FromQuery] int debug = 0)
+        {
+            LogDebug(debug, "demo5/polygons-initial", lon, lat, km, n);
+            var vals = FilterByCenter(_demo5Polygons.Values, lon, lat, km).Take(Clamp(n, 1, 2000)).ToList();
+            return Ok(vals);
+        }
+
     }
 
     // DTOs
@@ -479,6 +618,7 @@ namespace MapAppMVC.Controllers
         public double? OutlineWidth { get; set; }
 
         public AnimResponse? Anim { get; set; }
+        public bool? Alter { get; set; }
     }
 
     public record PolygonResponse
@@ -496,6 +636,7 @@ namespace MapAppMVC.Controllers
         public double? OutlineWidth { get; set; }
 
         public AnimResponse? Anim { get; set; }
+        public bool? Alter { get; set; }
     }
 
     public record IconResponse
@@ -507,6 +648,7 @@ namespace MapAppMVC.Controllers
         public FaStyleResponse? Fa { get; set; }
         public bool? Kill { get; set; }
         public AnimResponse? Anim { get; set; }
+        public bool? Alter { get; set; }
     }
 
     public record CreateIconRequest
@@ -519,6 +661,8 @@ namespace MapAppMVC.Controllers
 
     public record FaStyleResponse
     {
+        public string? Name { get; set; }
+
         public string? Glyph { get; set; }
         public int? Size { get; set; }
         public int? Weight { get; set; }
@@ -532,4 +676,6 @@ namespace MapAppMVC.Controllers
         public string? Image { get; set; }
         public double? Scale { get; set; }
     }
+
+
 }
