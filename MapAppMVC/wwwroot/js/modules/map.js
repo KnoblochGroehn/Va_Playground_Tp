@@ -690,20 +690,25 @@ export default class OlCircleIconMap {
         this.map.on('click', (e) => {
             if (!this.popupEnabled) return;
 
-            const hit = this.map.forEachFeatureAtPixel(e.pixel, (f) => f, { hitTolerance: 6 });
+            let hit = this.map.forEachFeatureAtPixel(e.pixel, (f) => f, { hitTolerance: 6 });
             if (!hit) {
                 this.closeAllPopups();
                 this.popupOverlay?.setPosition(undefined);
                 return;
             }
 
-            // cluster click => zoom
+            // cluster click => zoom OR unwrap single
             const clustered = hit.get && hit.get('features');
-            if (Array.isArray(clustered) && clustered.length > 1) {
-                const extent = ol.extent.createEmpty();
-                clustered.forEach(f => ol.extent.extend(extent, f.getGeometry().getExtent()));
-                this.map.getView().fit(extent, { duration: 250, padding: [40, 40, 40, 40], maxZoom: 18 });
-                return;
+            if (Array.isArray(clustered)) {
+                if (clustered.length > 1) {
+                    const extent = ol.extent.createEmpty();
+                    clustered.forEach(f => ol.extent.extend(extent, f.getGeometry().getExtent()));
+                    this.map.getView().fit(extent, { duration: 250, padding: [40, 40, 40, 40], maxZoom: 18 });
+                    return;
+                }
+                if (clustered.length === 1 && clustered[0]) {
+                    hit = clustered[0];
+                }
             }
 
             if (!this.popupMultiple) this.closeAllPopups();
@@ -720,7 +725,7 @@ export default class OlCircleIconMap {
             const pos = geom instanceof ol.geom.Point ? geom.getCoordinates() : geom.getClosestPoint(e.coordinate);
             const id = hit.getId() || '';
 
-            if (this.popupMultiple) {
+            if (this.popupMultiple) { 
                 const el = this.#createPopupElement();
                 const overlay = new ol.Overlay({ element: el, autoPan: true, autoPanAnimation: { duration: 200 } });
                 const closer = el.querySelector('[data-popup-close]');
@@ -740,6 +745,7 @@ export default class OlCircleIconMap {
                 this.popupOverlay.setPosition(pos);
             }
         });
+
     }
 
     #createPopupElement() {

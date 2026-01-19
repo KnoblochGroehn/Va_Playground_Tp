@@ -93,6 +93,144 @@
   },
   {
     "ContainingType": "MapAppMVC.Controllers.MapController",
+    "Method": "GetDemo5CirclesInitial",
+    "RelativePath": "api/map/demo5/circles-initial",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "lon",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "lat",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "km",
+        "Type": "System.Double",
+        "IsRequired": false
+      },
+      {
+        "Name": "n",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "debug",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[MapAppMVC.Controllers.CircleResponse, MapAppMVC, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "MapAppMVC.Controllers.MapController",
+    "Method": "GetDemo5IconsInitial",
+    "RelativePath": "api/map/demo5/icons-initial",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "lon",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "lat",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "km",
+        "Type": "System.Double",
+        "IsRequired": false
+      },
+      {
+        "Name": "n",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "debug",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[MapAppMVC.Controllers.IconResponse, MapAppMVC, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "MapAppMVC.Controllers.MapController",
+    "Method": "GetDemo5PolygonsInitial",
+    "RelativePath": "api/map/demo5/polygons-initial",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "lon",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "lat",
+        "Type": "System.Nullable\u00601[[System.Double, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "km",
+        "Type": "System.Double",
+        "IsRequired": false
+      },
+      {
+        "Name": "n",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "debug",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[MapAppMVC.Controllers.PolygonResponse, MapAppMVC, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "MapAppMVC.Controllers.MapController",
     "Method": "CreateIcon",
     "RelativePath": "api/map/icon",
     "HttpMethod": "POST",
